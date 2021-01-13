@@ -4,6 +4,9 @@
 Bash script for walking you through the creation of redirector rules for cobalstrike profiles.
 There is also a dockerfile that you can use to containerize an Apache redirector server.
 
+## DISCLAIMER
+Usage of this script and dockerfile for attacking targets without prior mutual consent is illegal. This is only for educational or testing purposes and can only be used where strict consent has been given. It's the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program. Only use for educational or testing purposes.
+
 ## Getting Started
 
 ### System Requirements
