@@ -612,6 +612,88 @@ function COOKIE() {
 #    redirectRule 0
 #}
 
+function REFERER() {
+    #
+    # This function is for a referer header redirect
+    #
+    echo -e "${GREEN}"
+    echo "  This section allows you to add a conditional rule based on the Referer header."
+    echo "   1. Make sure that your entry is complete, it matches what Referer header the client will be sending."
+    echo "   2. If your referer url ends in a /, then you'll have the option to specify an exact match or a wildcard subpath match. We'll ask you about that later, trust me."
+    echo "   3. Make sure its a full url: https://test.what.com/ or http://i.refered.you.com/my-posts"
+    echo "   4. You can specify multiple referer paths by sperating them with a comma: https://test.com/,http://what.com/test/,https://hello.there/obiwan.jpg"
+    echo ""
+    echo -e "${YELLOW}"
+    echo "Please specifiy the full url referer you want to use for this conditional rule: "
+    read REFCON
+    
+    REFTHINGS=""
+    if [[ $REFCON == *","* ]]; then
+        let a=0
+        IFS=',' read -ra APATH <<< "$REFCON"
+        for i in "${APATH[@]}"; do
+            if [ ${i: -1} == "/" ]; then
+                echo -e $YELLOW
+                echo -e "Do you want the referer path, ${i} , to match exactly or match this path and any subpaths under it? "
+                echo -e " 1. Exact Match"
+                echo -e " 2. Sub Path Match"
+                read PATHMATCH
+                case $PATHMATCH in
+                    1)
+                        ;;
+                    2)
+                        i="${i}(.*)"
+                        ;;
+                    *)
+                        echo "Not an option, we will decide for you - exact match it is"
+                        echo " It wasn't that hard...."
+                        ;;
+                esac
+            fi
+            # escape all periods, spaces, and parentheses
+            i=$(sed -e 's/\./\\&/g;s/\ /\\&/g;s/)/\\&/g;s/(/\\&/g' <<< $i)
+            if (( $a == 0 )); then
+                REFTHINGS="${i}"
+                a=1
+            else
+                REFTHINGS+="|${i}"
+            fi
+        done
+        #Add bits to config file
+        echo "  # Conditional rule for referer header: ${REFCON}" >> conf/apache_redirect.conf
+        echo "  RewriteCond %{HTTP_REFERER} ^(${REFTHINGS})?$ [NC]" >> conf/apache_redirect.conf
+    else 
+        if [ ${REFCON: -1} == "/" ]; then
+            echo -e $YELLOW
+            echo -e "Do you want the referer path, ${REFCON} , to match exactly or match this path and any subpaths under it? "
+            echo -e " 1. Exact Match"
+            echo -e " 2. Sub Path Match"
+            read PATHMATCH
+            case $PATHMATCH in
+                1)
+                    ;;
+                2)
+                    REFCON="${REFCON}(.*)"
+                    ;;
+                *)
+                    echo "Not an option, we will decide for you - exact match it is"
+                    echo " It wasn't that hard...."
+                    ;;
+            esac
+        fi
+        # escape all periods, spaces, and parentheses
+        REFCON=$(sed -e 's/\./\\&/g;s/\ /\\&/g;s/)/\\&/g;s/(/\\&/g' <<< $REFCON)
+        #Add bits to config file
+        echo "  # Conditional rule for referer header: ${REFCON}" >> conf/apache_redirect.conf
+        echo "  RewriteCond %{HTTP_REFERER} ^${REFCON}?$ [NC]" >> conf/apache_redirect.conf
+    fi
+    
+    if (( $2 == 1 )); then
+        redirectRule 0
+    fi
+    
+}
+
 function ADDCUST() {
     #
     # This is the function to create a conditional rule for some custom entry
@@ -782,9 +864,10 @@ while true; do
     echo "  1. URI/URL Redirect Conditions"
     echo "  2. USER-AGENT Redirect Conditions"
     echo "  3. COOKIE Redirect Conditions"
-    echo "  4. Enter Custom Redirect Condition(s)"
-    echo "  5. Redirect All Traffic"
-    echo "  6. I'm done"
+    echo "  4. REFERER Header Redirect Conditions"
+    echo "  5. Enter Custom Redirect Condition(s)"
+    echo "  6. Redirect All Traffic"
+    echo "  7. I'm done"
     echo -e ${YELLOW}
     read -p "Please choose an option: " CONDOPT
     case $CONDOPT in
@@ -798,14 +881,17 @@ while true; do
             COOKIE $FIRSTTIME 1
             ;;
         4)
-            ADDCUST
+            REFERER $FIRSTTIME 1
             ;;
         5)
+            ADDCUST
+            ;;
+        6)
             PROXYALL
             NOCATCHALL=1
             break
             ;;
-        6)
+        7)
             break
             ;;
     esac
